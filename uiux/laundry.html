@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>세탁실 이용 현황</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+    }
+    .page-header {
+      background: #fff;
+      padding: 20px 24px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .page-header h2 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .tabs { display: flex; }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 16px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: #aaa;
+    }
+    .tab.active {
+      color: #3182ce;
+      border-bottom: 2px solid #3182ce;
+      font-weight: 500;
+    }
+    .minimap-wrap { padding: 20px 24px; }
+    .minimap {
+      background: #fff;
+      border-radius: 12px;
+      border: 1.5px solid #ddd;
+      padding: 16px;
+    }
+    .map-layout {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .map-left {
+      display: flex;
+      flex-direction: column;
+      gap: 100px;
+      flex: 1;
+    }
+    .map-top-row { display: flex; gap: 4px; }
+    .map-bottom-row { display: flex; gap: 4px; }
+    .map-right {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .machine-box {
+      width: 9vw;
+      height: 9vw;
+      border-radius: 6px;
+      border: 2px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s;
+    }
+    .machine-box:active { transform: scale(0.93); }
+    .machine-box.available { background: #e6f4ea; border-color: #2e7d32; color: #2e7d32; }
+    .machine-box.inuse { background: #fffde7; border-color: #f57f17; color: #f57f17; }
+    .machine-box.broken { background: #ffebee; border-color: #c62828; color: #c62828; }
+    .legend {
+      display: flex;
+      gap: 14px;
+      padding: 0 24px 16px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #555;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1.5px solid;
+    }
+    .legend-dot.available { background: #e6f4ea; border-color: #2e7d32; }
+    .legend-dot.inuse { background: #fffde7; border-color: #f57f17; }
+    .legend-dot.broken { background: #ffebee; border-color: #c62828; }
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup {
+      background: #fff;
+      width: 100%;
+      border-radius: 16px 16px 0 0;
+      padding: 24px;
+      position: relative;
+    }
+    .popup-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: #eee;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .popup-title { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+    .popup-status {
+      display: inline-block;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .popup-status.available { background: #e6f4ea; color: #2e7d32; }
+    .popup-status.inuse { background: #fffde7; color: #f57f17; }
+    .popup-status.broken { background: #ffebee; color: #c62828; }
+    .popup-time { font-size: 15px; color: #555; margin-bottom: 24px; }
+    .popup-btn {
+      width: 100%;
+      padding: 14px;
+      background: #fff;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .popup-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .popup-btn:not(:disabled):active { background: #f0f0f0; }
+    .hidden { display: none; }
+    .bottom-area { padding: 16px; }
+    .bottom-btn {
+      width: 100%;
+      padding: 14px;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .bottom-btn:active { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h2>세탁실 이용 현황</h2>
+      <button onclick="location.href='index.html'" style="background:none; border:none; cursor:pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H15v-5h-6v5H4a1 1 0 0 1-1-1V9.5z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('washer', this)">세탁기</div>
+      <div class="tab" onclick="switchTab('dryer', this)">건조기</div>
+    </div>
+  </div>
+
+  <div id="tab-washer">
+    <div class="minimap-wrap">
+      <div class="minimap">
+        <div class="map-layout">
+          <div class="map-left">
+            <div class="map-top-row">
+              <div class="machine-box available" onclick="openPopup('1번 세탁기', 'available', '사용 가능', null)">1</div>
+              <div class="machine-box inuse" onclick="openPopup('2번 세탁기', 'inuse', '사용 중', 15)">2</div>
+              <div class="machine-box available" onclick="openPopup('3번 세탁기', 'available', '사용 가능', null)">3</div>
+              <div class="machine-box broken" onclick="openPopup('4번 세탁기', 'broken', '사용 불가', null)">4</div>
+              <div class="machine-box available" onclick="openPopup('5번 세탁기', 'available', '사용 가능', null)">5</div>
+              <div class="machine-box inuse" onclick="openPopup('6번 세탁기', 'inuse', '사용 중', 8)">6</div>
+              <div class="machine-box available" onclick="openPopup('7번 세탁기', 'available', '사용 가능', null)">7</div>
+            </div>
+            <div class="map-bottom-row">
+              <div class="machine-box available" onclick="openPopup('13번 세탁기', 'available', '사용 가능', null)">13</div>
+              <div class="machine-box inuse" onclick="openPopup('14번 세탁기', 'inuse', '사용 중', 5)">14</div>
+            </div>
+          </div>
+          <div class="map-right">
+            <div class="machine-box available" onclick="openPopup('8번 세탁기', 'available', '사용 가능', null)">8</div>
+            <div class="machine-box inuse" onclick="openPopup('9번 세탁기', 'inuse', '사용 중', 20)">9</div>
+            <div class="machine-box available" onclick="openPopup('10번 세탁기', 'available', '사용 가능', null)">10</div>
+            <div class="machine-box broken" onclick="openPopup('11번 세탁기', 'broken', '사용 불가', null)">11</div>
+            <div class="machine-box available" onclick="openPopup('12번 세탁기', 'available', '사용 가능', null)">12</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot available"></div>사용 가능</div>
+      <div class="legend-item"><div class="legend-dot inuse"></div>사용 중</div>
+      <div class="legend-item"><div class="legend-dot broken"></div>사용 불가</div>
+    </div>
+  </div>
+
+  <div id="tab-dryer" class="hidden">
+    <div class="minimap-wrap">
+      <div class="minimap">
+        <div class="map-layout">
+          <div class="map-left">
+            <div class="map-top-row">
+              <div class="machine-box available" onclick="openPopup('1번 건조기', 'available', '사용 가능', null)">1</div>
+              <div class="machine-box inuse" onclick="openPopup('2번 건조기', 'inuse', '사용 중', 15)">2</div>
+              <div class="machine-box available" onclick="openPopup('3번 건조기', 'available', '사용 가능', null)">3</div>
+              <div class="machine-box broken" onclick="openPopup('4번 건조기', 'broken', '사용 불가', null)">4</div>
+              <div class="machine-box available" onclick="openPopup('5번 건조기', 'available', '사용 가능', null)">5</div>
+              <div class="machine-box inuse" onclick="openPopup('6번 건조기', 'inuse', '사용 중', 8)">6</div>
+              <div class="machine-box available" onclick="openPopup('7번 건조기', 'available', '사용 가능', null)">7</div>
+            </div>
+            <div class="map-bottom-row">
+              <div class="machine-box available" onclick="openPopup('13번 건조기', 'available', '사용 가능', null)">13</div>
+              <div class="machine-box inuse" onclick="openPopup('14번 건조기', 'inuse', '사용 중', 5)">14</div>
+            </div>
+          </div>
+          <div class="map-right">
+            <div class="machine-box available" onclick="openPopup('8번 건조기', 'available', '사용 가능', null)">8</div>
+            <div class="machine-box inuse" onclick="openPopup('9번 건조기', 'inuse', '사용 중', 20)">9</div>
+            <div class="machine-box available" onclick="openPopup('10번 건조기', 'available', '사용 가능', null)">10</div>
+            <div class="machine-box broken" onclick="openPopup('11번 건조기', 'broken', '사용 불가', null)">11</div>
+            <div class="machine-box available" onclick="openPopup('12번 건조기', 'available', '사용 가능', null)">12</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot available"></div>사용 가능</div>
+      <div class="legend-item"><div class="legend-dot inuse"></div>사용 중</div>
+      <div class="legend-item"><div class="legend-dot broken"></div>사용 불가</div>
+    </div>
+  </div>
+
+  <div class="popup-overlay" id="popup-overlay" onclick="closePopupOutside(event)">
+    <div class="popup">
+      <button class="popup-close" onclick="closePopup()">✕</button>
+      <div class="popup-title" id="popup-title"></div>
+      <div class="popup-status" id="popup-status"></div>
+      <div class="popup-time" id="popup-time"></div>
+      <button class="popup-btn" id="popup-btn" onclick="reserve()">예약하기</button>
+    </div>
+  </div>
+
+  <div class="bottom-area">
+    <button class="bottom-btn" onclick="location.href='Myusage.html'">내 이용 현황</button>
+  </div>
+
+  <script>
+    let currentMachineName = '';
+let currentMachineType = 'washer';
+
+function switchTab(tab, el) {
+  document.getElementById('tab-washer').classList.add('hidden');
+  document.getElementById('tab-dryer').classList.add('hidden');
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function openPopup(name, statusClass, statusText, remainMin) {
+  currentMachineName = name;
+  currentMachineType = document.getElementById('tab-washer').classList.contains('hidden') ? 'dryer' : 'washer';
+  document.getElementById('popup-title').textContent = name;
+  const statusEl = document.getElementById('popup-status');
+  statusEl.textContent = statusText;
+  statusEl.className = 'popup-status ' + statusClass;
+  document.getElementById('popup-time').textContent = remainMin !== null ? '예상 잔여 시간: ' + remainMin + '분' : '예상 잔여 시간: -';
+  const btn = document.getElementById('popup-btn');
+  btn.disabled = statusClass === 'broken';
+  document.getElementById('popup-overlay').classList.add('show');
+}
+
+function closePopup() {
+  document.getElementById('popup-overlay').classList.remove('show');
+}
+
+function closePopupOutside(e) {
+  if (e.target === document.getElementById('popup-overlay')) closePopup();
+}
+
+function reserve() {
+  if (!currentMachineName) return;
+  const status = document.getElementById('popup-status').textContent;
+  const isAvailable = (status === '사용 가능');
+  const remain = isAvailable ? 'null' : document.getElementById('popup-time').textContent.replace('예상 잔여 시간: ', '').replace('분', '');
+  location.href = 'reserve.html?name=' + encodeURIComponent(currentMachineName) + '&remain=' + remain + '&type=' + currentMachineType;
+}
+
+let touchStartX = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+});
+
+document.addEventListener('touchend', e => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) < 50) return;
+
+  const tabs = document.querySelectorAll('.tab');
+  if (diff > 0) {
+    switchTab('dryer', tabs[1]);
+  } else {
+    switchTab('washer', tabs[0]);
+  }
+});
+  </script>
+
+</body>
+</html>

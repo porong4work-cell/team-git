@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>로그인</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-header {
+      background: #fff;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-header h2 { font-size: 20px; font-weight: 500; }
+    .home-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .content {
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label { font-size: 14px; color: #555; }
+    .form-group input {
+      padding: 12px 16px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      background: #fff;
+      outline: none;
+    }
+    .form-group input:focus { border-color: #3182ce; }
+
+    .error-msg {
+      font-size: 13px;
+      color: #c62828;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .login-btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h2>로그인</h2>
+    <button class="home-btn" onclick="location.href='index.html'">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H15v-5h-6v5H4a1 1 0 0 1-1-1V9.5z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="form-group">
+      <label>아이디</label>
+      <input type="text" id="input-id" placeholder="학번을 입력하세요" />
+    </div>
+    <div class="form-group">
+      <label>비밀번호</label>
+      <input type="password" id="input-pw" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter') login()" />
+    </div>
+    <div class="error-msg" id="error-msg">아이디 또는 비밀번호가 올바르지 않습니다.</div>
+    <button class="login-btn" onclick="login()">로그인</button>
+  </div>
+
+  <script>
+    const accounts = [
+      { id: '12253364', password: '12345', name: '허연희' },
+      { id: '12245607', password: '12345', name: '장주환' },
+      { id: '12233884', password: '12345', name: '김지원' },
+      { id: '12253362', password: '12345', name: '한동재' },
+    ];
+
+    function login() {
+      const id = document.getElementById('input-id').value.trim();
+      const pw = document.getElementById('input-pw').value;
+      const account = accounts.find(a => a.id === id && a.password === pw);
+
+      if (account) {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userName', account.name);
+        localStorage.setItem('userId', account.id);
+        location.href = 'mypage.html';
+      } else {
+        document.getElementById('error-msg').classList.add('show');
+      }
+    }
+  </script>
+</body>
+</html>

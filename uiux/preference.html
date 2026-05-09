@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>메뉴 선호도 설정</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root{ --blue:#3182ce; --blue-light:#e8f0fd; --red:#dc2626; --red-light:#fee2e2; --g50:#f8fafc; --g200:#e2e8f0; --g500:#64748b; --g700:#334155; --g900:#0f172a; --white:#fff; --radius:12px; --rsm:8px; --shadow:0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06); }
+    body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background: #f5f5f5; color: var(--g900); min-height: 100vh; padding-bottom: 40px; }
+
+    .page-header {
+      background: #fff;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-header h2 { font-size: 20px; font-weight: 500; }
+    .home-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
+
+    .page { max-width: 720px; margin: 0 auto; padding: 20px 16px; }
+    .page-desc { font-size: 14px; color: var(--g500); margin-bottom: 20px; }
+
+    .card { background: var(--white); border: 1px solid var(--g200); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--g700); margin-bottom: 14px; }
+
+    .form-input { height: 38px; padding: 0 10px; border: 1px solid var(--g200); border-radius: var(--rsm); font-size: 13px; background: var(--g50); outline: none; }
+    .input-row { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-add { padding: 0 16px; background: var(--blue); color: var(--white); border: none; border-radius: var(--rsm); font-size: 12px; cursor: pointer; white-space: nowrap; }
+
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 5px 12px;
+      border: 1px solid var(--g200);
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--g500);
+      cursor: pointer;
+      background: var(--white);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .chip.selected { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+    .chip.dc { }
+    .chip.dc.selected { background: var(--red-light); border-color: var(--red); color: var(--red); }
+    .chip.dislike.selected { background: #fef3c7; border-color: #d97706; color: #d97706; }
+
+    .run-btn { width: 100%; height: 48px; background: var(--blue); color: var(--white); border: none; border-radius: var(--rsm); font-size: 15px; font-weight: 700; cursor: pointer; }
+    .run-btn:active { opacity: 0.85; }
+
+    /* 삭제 확인 모달 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 85%;
+      text-align: center;
+    }
+    .modal h3 { font-size: 18px; font-weight: 500; margin-bottom: 10px; }
+    .modal p { font-size: 14px; color: #555; margin-bottom: 24px; }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .modal-btn.danger { background: #c62828; color: #fff; border-color: #c62828; }
+    .modal-btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h2>메뉴 선호도 설정</h2>
+    <button class="home-btn" onclick="location.href='index.html'">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H15v-5h-6v5H4a1 1 0 0 1-1-1V9.5z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="page">
+    <p class="page-desc">메뉴 추천에 반영될 개인 선호를 설정해주세요.</p>
+
+    <div class="card">
+      <!-- 선호 유형 -->
+      <div class="card-title">선호 유형</div>
+      <div class="chip-group" id="likedTypes">
+        <div class="chip" data-val="한식" onclick="tc(this)">한식</div>
+        <div class="chip" data-val="양식" onclick="tc(this)">양식</div>
+        <div class="chip" data-val="중식" onclick="tc(this)">중식</div>
+        <div class="chip" data-val="일식" onclick="tc(this)">일식</div>
+      </div>
+      <div class="input-row">
+        <input class="form-input" id="newType" placeholder="직접 입력" style="flex:1;" />
+        <button class="btn-add" onclick="addCustom('likedTypes', 'newType', '', false)">추가</button>
+      </div>
+
+      <!-- 좋아하는 메뉴 -->
+      <div class="card-title" style="margin-top:20px;">좋아하는 메뉴</div>
+      <div class="chip-group" id="likedCuisines">
+        <div class="chip" data-val="밥" onclick="tc(this)" oncontextmenu="return false;">밥</div>
+        <div class="chip" data-val="면" onclick="tc(this)" oncontextmenu="return false;">면</div>
+        <div class="chip" data-val="고기" onclick="tc(this)" oncontextmenu="return false;">고기</div>
+      </div>
+      <div class="input-row">
+        <input class="form-input" id="newCuisine" placeholder="직접 입력" style="flex:1;" />
+        <button class="btn-add" onclick="addCustom('likedCuisines', 'newCuisine', '', false)">추가</button>
+      </div>
+
+      <!-- 싫어하는 메뉴 -->
+      <div class="card-title" style="margin-top:20px;">싫어하는 메뉴</div>
+      <div class="chip-group" id="dislikedCuisines"></div>
+      <div class="input-row">
+        <input class="form-input" id="newDislike" placeholder="직접 입력" style="flex:1;" />
+        <button class="btn-add" onclick="addCustom('dislikedCuisines', 'newDislike', 'dislike', true)">추가</button>
+      </div>
+
+      <!-- 알레르기 -->
+      <div class="card-title" style="margin-top:20px;">알레르기</div>
+      <div class="chip-group" id="allergies">
+        <div class="chip dc" data-val="우유" onclick="tc(this)" oncontextmenu="return false;">우유</div>
+        <div class="chip dc" data-val="계란" onclick="tc(this)" oncontextmenu="return false;">계란</div>
+        <div class="chip dc" data-val="땅콩" onclick="tc(this)" oncontextmenu="return false;">땅콩</div>
+      </div>
+      <div class="input-row">
+        <input class="form-input" id="newAllergy" placeholder="직접 입력" style="flex:1;" />
+        <button class="btn-add" onclick="addCustom('allergies', 'newAllergy', 'dc', true)">추가</button>
+      </div>
+    </div>
+
+    <button class="run-btn" onclick="savePreference()">저장</button>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+      <h3>항목 삭제</h3>
+      <p id="delete-msg"></p>
+      <div class="modal-btns">
+        <button class="modal-btn" onclick="closeDeleteModal()">취소</button>
+        <button class="modal-btn danger" onclick="confirmDelete()">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let deleteTarget = null;
+
+    // 꾹 누르기 감지 함수
+    function addLongPress(el) {
+      let timer = null;
+      el.addEventListener('touchstart', () => {
+        timer = setTimeout(() => openDeleteModal(el), 600);
+      });
+      el.addEventListener('touchend', () => clearTimeout(timer));
+      el.addEventListener('touchmove', () => clearTimeout(timer));
+    }
+
+    function openDeleteModal(el) {
+      deleteTarget = el;
+      document.getElementById('delete-msg').textContent = '"' + el.dataset.val + '" 삭제하시겠습니까?';
+      document.getElementById('delete-modal').classList.add('show');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('delete-modal').classList.remove('show');
+      deleteTarget = null;
+    }
+
+    function confirmDelete() {
+      if (deleteTarget) deleteTarget.remove();
+      closeDeleteModal();
+    }
+
+    function tc(el) { el.classList.toggle('selected'); }
+
+    function addChip(groupId, val, extraClass, autoSelected, deletable) {
+      const group = document.getElementById(groupId);
+      const chip = document.createElement('div');
+      chip.className = `chip ${extraClass}${autoSelected ? ' selected' : ''}`;
+      chip.dataset.val = val;
+      chip.textContent = val;
+      chip.setAttribute('oncontextmenu', 'return false;');
+      if (deletable) {
+        addLongPress(chip);
+      } else {
+        chip.onclick = function() { this.classList.toggle('selected'); };
+        addLongPress(chip);
+      }
+      group.appendChild(chip);
+    }
+
+    function addCustom(groupId, inputId, extraClass, autoSelected) {
+      const input = document.getElementById(inputId);
+      const val = input.value.trim();
+      if (!val) return;
+      addChip(groupId, val, extraClass, autoSelected, true);
+      input.value = '';
+    }
+
+    // 기존 칩에 꾹 누르기 적용
+    document.querySelectorAll('.chip').forEach(chip => addLongPress(chip));
+
+    // 저장된 선호도 불러오기
+    const saved = JSON.parse(localStorage.getItem('preference')) || null;
+    if (saved) {
+      if (saved.likedTypes) {
+        saved.likedTypes.forEach(val => {
+          const existing = [...document.querySelectorAll('#likedTypes .chip')].find(c => c.dataset.val === val);
+          if (existing) existing.classList.add('selected');
+          else addChip('likedTypes', val, '', true, true);
+        });
+      }
+      if (saved.likedCuisines) {
+        saved.likedCuisines.forEach(val => {
+          const existing = [...document.querySelectorAll('#likedCuisines .chip')].find(c => c.dataset.val === val);
+          if (existing) existing.classList.add('selected');
+          else addChip('likedCuisines', val, '', true, true);
+        });
+      }
+      if (saved.dislikedCuisines) {
+        saved.dislikedCuisines.forEach(val => addChip('dislikedCuisines', val, 'dislike', true, true));
+      }
+      if (saved.allergies) {
+        saved.allergies.forEach(val => {
+          const existing = [...document.querySelectorAll('#allergies .chip')].find(c => c.dataset.val === val);
+          if (existing) existing.classList.add('selected');
+          else addChip('allergies', val, 'dc', true, true);
+        });
+      }
+    }
+
+    function savePreference() {
+      const likedTypes = [...document.querySelectorAll('#likedTypes .chip.selected')].map(c => c.dataset.val);
+      const likedCuisines = [...document.querySelectorAll('#likedCuisines .chip.selected')].map(c => c.dataset.val);
+      const dislikedCuisines = [...document.querySelectorAll('#dislikedCuisines .chip.selected')].map(c => c.dataset.val);
+      const allergies = [...document.querySelectorAll('#allergies .chip.selected')].map(c => c.dataset.val);
+
+      const data = { likedTypes, likedCuisines, dislikedCuisines, allergies };
+      localStorage.setItem('preference', JSON.stringify(data));
+      alert('저장되었습니다.');
+      location.href = 'Menu.html';
+    }
+  </script>
+</body>
+</html>

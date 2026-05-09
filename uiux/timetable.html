@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>내 시간표</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      background: #fff;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-header h2 { font-size: 20px; font-weight: 500; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .add-btn {
+      background: none;
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+      color: #111;
+      line-height: 1;
+    }
+    .home-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 시간표 */
+    .table-wrap {
+      padding: 16px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid #ddd;
+    }
+    th {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 0;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+      border-right: 1px solid #eee;
+      color: #555;
+    }
+    th:first-child { width: 36px; }
+    td {
+      border-right: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+      height: 28px;
+      text-align: center;
+      font-size: 11px;
+      vertical-align: middle;
+      position: relative;
+    }
+    td.time-cell {
+      color: #aaa;
+      font-size: 11px;
+      padding-right: 4px;
+      text-align: right;
+      background: #fff;
+    }
+    td.half { border-bottom: 1px dashed #f0f0f0; }
+
+    /* 수업 블록 */
+    .class-block {
+      position: absolute;
+      left: 1px; right: 1px; top: 1px; bottom: 0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 2px;
+    }
+
+    /* 모달 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 88%;
+    }
+    .modal h3 { font-size: 18px; font-weight: 500; margin-bottom: 20px; }
+    .modal p { font-size: 14px; color: #888; margin-bottom: 24px; text-align: center; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { font-size: 14px; color: #555; display: block; margin-bottom: 6px; }
+    .form-group select, .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+    }
+    .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .modal-btn.confirm { background: #111; color: #fff; }
+    .modal-btn.danger { background: #c62828; color: #fff; border-color: #c62828; }
+    .modal-btn:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h2>내 시간표</h2>
+    <div class="header-right">
+      <button class="add-btn" onclick="openAddModal()">+</button>
+      <button class="home-btn" onclick="location.href='index.html'">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H15v-5h-6v5H4a1 1 0 0 1-1-1V9.5z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="timetable">
+      <thead>
+        <tr>
+          <th></th>
+          <th>월</th>
+          <th>화</th>
+          <th>수</th>
+          <th>목</th>
+          <th>금</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- 추가 모달 -->
+  <div class="modal-overlay" id="add-modal" onclick="closeModalOutside(event, 'add-modal')">
+    <div class="modal">
+      <h3>시간표 추가</h3>
+      <div class="form-group">
+        <label>과목명</label>
+        <input type="text" id="input-name" placeholder="예: 운영체제" />
+      </div>
+      <div class="form-group">
+        <label>요일</label>
+        <select id="input-day">
+          <option value="0">월요일</option>
+          <option value="1">화요일</option>
+          <option value="2">수요일</option>
+          <option value="3">목요일</option>
+          <option value="4">금요일</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>시작 시간</label>
+        <select id="input-start"></select>
+      </div>
+      <div class="form-group">
+        <label>종료 시간</label>
+        <select id="input-end"></select>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn" onclick="closeModal('add-modal')">취소</button>
+        <button class="modal-btn confirm" onclick="addClass()">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal-overlay" id="delete-modal" onclick="closeModalOutside(event, 'delete-modal')">
+    <div class="modal">
+      <h3>수업 삭제</h3>
+      <p>삭제하시겠습니까?</p>
+      <div class="modal-btns">
+        <button class="modal-btn" onclick="closeModal('delete-modal')">취소</button>
+        <button class="modal-btn danger" onclick="confirmDelete()">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 시간 슬롯 생성 (09:00 ~ 21:00, 30분 단위)
+    const slots = [];
+    for (let h = 9; h <= 21; h++) {
+      slots.push(h + ':00');
+      if (h < 21) slots.push(h + ':30');
+    }
+
+    // 시간 선택 옵션 채우기
+    const startSel = document.getElementById('input-start');
+    const endSel = document.getElementById('input-end');
+    slots.forEach(t => {
+      startSel.innerHTML += `<option value="${t}">${t}</option>`;
+      endSel.innerHTML += `<option value="${t}">${t}</option>`;
+    });
+    endSel.selectedIndex = 2;
+
+    // 테이블 생성
+    const tbody = document.getElementById('tbody');
+    slots.forEach((slot, i) => {
+      const tr = document.createElement('tr');
+      const isHalf = slot.includes(':30');
+      tr.className = isHalf ? 'half' : '';
+      tr.innerHTML = `<td class="time-cell">${isHalf ? '' : slot}</td>
+        <td data-day="0" data-slot="${i}"></td>
+        <td data-day="1" data-slot="${i}"></td>
+        <td data-day="2" data-slot="${i}"></td>
+        <td data-day="3" data-slot="${i}"></td>
+        <td data-day="4" data-slot="${i}"></td>`;
+      tbody.appendChild(tr);
+    });
+
+    // 수업 데이터
+    let classes = [];
+    let deleteTarget = null;
+
+    const colors = [
+      { bg: '#e3f2fd', text: '#1565c0', border: '#90caf9' },
+      { bg: '#e8f5e9', text: '#2e7d32', border: '#a5d6a7' },
+      { bg: '#fff3e0', text: '#e65100', border: '#ffcc80' },
+      { bg: '#f3e5f5', text: '#6a1b9a', border: '#ce93d8' },
+      { bg: '#fce4ec', text: '#880e4f', border: '#f48fb1' },
+      { bg: '#e0f7fa', text: '#006064', border: '#80deea' },
+    ];
+
+    function timeToSlot(t) {
+      const [h, m] = t.split(':').map(Number);
+      return (h - 9) * 2 + (m === 30 ? 1 : 0);
+    }
+
+    function renderClasses() {
+      // 기존 블록 제거
+      document.querySelectorAll('.class-block').forEach(el => el.remove());
+
+      classes.forEach((c, idx) => {
+        const color = colors[idx % colors.length];
+        const startSlot = timeToSlot(c.start);
+        const endSlot = timeToSlot(c.end);
+        const span = endSlot - startSlot;
+        if (span <= 0) return;
+
+        const rows = tbody.querySelectorAll('tr');
+        const targetRow = rows[startSlot];
+        if (!targetRow) return;
+        const targetCell = targetRow.querySelectorAll('td')[c.day + 1];
+        if (!targetCell) return;
+
+        const block = document.createElement('div');
+        block.className = 'class-block';
+        block.style.cssText = `background:${color.bg}; color:${color.text}; border:1.5px solid ${color.border}; height:calc(${span * 28}px - 2px);`;
+        block.textContent = c.name;
+        block.onclick = () => openDeleteModal(idx);
+        targetCell.appendChild(block);
+      });
+    }
+
+    function openAddModal() {
+      document.getElementById('input-name').value = '';
+      document.getElementById('add-modal').classList.add('show');
+    }
+
+    function addClass() {
+      const name = document.getElementById('input-name').value.trim();
+      const day = parseInt(document.getElementById('input-day').value);
+      const start = document.getElementById('input-start').value;
+      const end = document.getElementById('input-end').value;
+
+      if (!name) { alert('과목명을 입력해주세요.'); return; }
+      if (timeToSlot(start) >= timeToSlot(end)) { alert('종료 시간은 시작 시간보다 늦어야 해요.'); return; }
+
+      classes.push({ name, day, start, end });
+      renderClasses();
+      closeModal('add-modal');
+    }
+
+    function openDeleteModal(idx) {
+      deleteTarget = idx;
+      document.getElementById('delete-modal').classList.add('show');
+    }
+
+    function confirmDelete() {
+      if (deleteTarget !== null) {
+        classes.splice(deleteTarget, 1);
+        deleteTarget = null;
+        renderClasses();
+      }
+      closeModal('delete-modal');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+
+    function closeModalOutside(e, id) {
+      if (e.target === document.getElementById(id)) closeModal(id);
+    }
+  </script>
+</body>
+</html>

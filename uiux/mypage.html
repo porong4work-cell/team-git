@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>마이 페이지</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      background: #fff;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .page-header h2 { font-size: 20px; font-weight: 500; }
+    .home-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .profile {
+      background: #fff;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #eee;
+    }
+    .profile-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid #111;
+      flex-shrink: 0;
+    }
+    .profile-info { font-size: 15px; color: #555; line-height: 1.8; }
+    .profile-info strong { color: #111; font-weight: 500; }
+
+    .menu-list { background: #fff; margin-top: 12px; }
+    .menu-item {
+      padding: 18px 24px;
+      font-size: 16px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .menu-item:active { background: #f5f5f5; }
+    .menu-item.locked { color: #aaa; }
+    .lock-icon { font-size: 14px; color: #ccc; }
+
+    .bottom-area {
+      padding: 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn {
+      padding: 12px 32px;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: #f0f0f0; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    .modal h3 { font-size: 18px; font-weight: 500; margin-bottom: 10px; }
+    .modal p { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+    .modal textarea {
+      width: 100%;
+      height: 120px;
+      padding: 10px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 12px;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .modal-btn.cancel {
+      background: #fff;
+      color: #111;
+    }
+
+    .modal-btn.confirm {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    .modal-btn.cancel:active {
+      background: #f0f0f0;
+    }
+
+    .modal-btn.confirm:active {
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h2>마이 페이지</h2>
+    <button class="home-btn" onclick="location.href='index.html'">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H15v-5h-6v5H4a1 1 0 0 1-1-1V9.5z"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="profile" id="profile-guest" style="display:none;">
+    <div class="profile-circle"></div>
+    <div class="profile-info">로그인 후 이용해주세요.</div>
+  </div>
+
+  <div class="profile" id="profile-user" style="display:none;">
+    <div class="profile-circle"></div>
+    <div class="profile-info">
+      <div>학번: <strong id="user-id">-</strong></div>
+      <div>이름: <strong id="user-name">-</strong>님</div>
+    </div>
+  </div>
+
+  <div class="menu-list">
+    <div class="menu-item" id="menu-timetable" onclick="handleMenu('timetable.html')">
+      시간표 수정
+      <span class="lock-icon" id="lock-timetable">🔒</span>
+    </div>
+    <div class="menu-item" id="menu-preference" onclick="handleMenu('preference.html')">
+      메뉴 선호도 설정
+      <span class="lock-icon" id="lock-preference">🔒</span>
+    </div>
+    <div class="menu-item" onclick="openModal()">피드백 전송</div>
+  </div>
+
+  <div class="bottom-area" id="btn-guest" style="display:none;">
+    <button class="btn" onclick="location.href='login.html'">로그인</button>
+    <button class="btn" onclick="location.href='login.html'">회원가입</button>
+  </div>
+
+  <div class="bottom-area" id="btn-user" style="display:none;">
+    <button class="btn" onclick="logout()">로그아웃</button>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <h3>피드백 전송</h3>
+      <p>불편한 점이나 개선 사항을 알려주세요.</p>
+      <textarea id="feedback-text" placeholder="내용을 입력해주세요."></textarea>
+      <div class="modal-btns">
+        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+        <button class="modal-btn confirm" onclick="sendFeedback()">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const userName = localStorage.getItem('userName') || '-';
+    const userId = localStorage.getItem('userId') || '-';
+
+    if (isLoggedIn) {
+      document.getElementById('profile-user').style.display = 'flex';
+      document.getElementById('btn-user').style.display = 'flex';
+      document.getElementById('user-id').textContent = userId;
+      document.getElementById('user-name').textContent = userName;
+      document.getElementById('lock-timetable').style.display = 'none';
+      document.getElementById('lock-preference').style.display = 'none';
+    } else {
+      document.getElementById('profile-guest').style.display = 'flex';
+      document.getElementById('btn-guest').style.display = 'flex';
+      document.getElementById('menu-timetable').classList.add('locked');
+      document.getElementById('menu-preference').classList.add('locked');
+    }
+
+    function handleMenu(url) {
+      if (!isLoggedIn) {
+        location.href = 'login.html';
+      } else if (url) {
+        location.href = url;
+      } else {
+        openModal();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userId');
+      location.reload();
+    }
+
+    function openModal() {
+      document.getElementById('modal-overlay').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('show');
+    }
+
+    function closeModalOutside(e) {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    }
+
+    function sendFeedback() {
+      const text = document.getElementById('feedback-text').value.trim();
+      if (!text) {
+        alert('내용을 입력해주세요.');
+        return;
+      }
+      alert('피드백이 전송되었습니다. 감사합니다!');
+      document.getElementById('feedback-text').value = '';
+      closeModal();
+    }
+  </script>
+</body>
+</html>
