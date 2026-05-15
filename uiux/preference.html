@@ -48,6 +48,51 @@
     .chip.dc.selected { background: var(--red-light); border-color: var(--red); color: var(--red); }
     .chip.dislike.selected { background: #fef3c7; border-color: #d97706; color: #d97706; }
 
+    /* 이용 불가 시간대 - 라디오 스타일 */
+    .time-group {
+      display: flex;
+      gap: 10px;
+    }
+    .time-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 8px;
+      border: 1.5px solid var(--g200);
+      border-radius: var(--rsm);
+      background: var(--white);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .time-btn .time-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .time-btn .time-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--g700);
+    }
+    .time-btn .time-sub {
+      font-size: 11px;
+      color: var(--g500);
+    }
+    .time-btn.selected {
+      border-color: var(--red);
+      background: var(--red-light);
+    }
+    .time-btn.selected .time-label {
+      color: var(--red);
+    }
+    .time-btn.selected .time-sub {
+      color: #f87171;
+    }
+
+
     .run-btn { width: 100%; height: 48px; background: var(--blue); color: var(--white); border: none; border-radius: var(--rsm); font-size: 15px; font-weight: 700; cursor: pointer; }
     .run-btn:active { opacity: 0.85; }
 
@@ -145,6 +190,27 @@
         <input class="form-input" id="newAllergy" placeholder="직접 입력" style="flex:1;" />
         <button class="btn-add" onclick="addCustom('allergies', 'newAllergy', 'dc', true)">추가</button>
       </div>
+
+      <!-- 이용 불가 시간대 -->
+      <div class="card-title" style="margin-top:20px;">이용 불가 시간대</div>
+      <div class="time-group">
+        <button class="time-btn" data-val="아침" onclick="selectTime(this)">
+          <span class="time-icon">🌅</span>
+          <span class="time-label">아침</span>
+          <span class="time-sub">~10:00</span>
+        </button>
+        <button class="time-btn" data-val="점심" onclick="selectTime(this)">
+          <span class="time-icon">☀️</span>
+          <span class="time-label">점심</span>
+          <span class="time-sub">11:00~14:00</span>
+        </button>
+        <button class="time-btn" data-val="저녁" onclick="selectTime(this)">
+          <span class="time-icon">🌙</span>
+          <span class="time-label">저녁</span>
+          <span class="time-sub">17:00~</span>
+        </button>
+      </div>
+
     </div>
 
     <button class="run-btn" onclick="savePreference()">저장</button>
@@ -217,6 +283,13 @@
       input.value = '';
     }
 
+    // 이용 불가 시간대 - 단일 선택 (재클릭 시 해제)
+    function selectTime(el) {
+      const wasSelected = el.classList.contains('selected');
+      document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+      if (!wasSelected) el.classList.add('selected');
+    }
+
     // 기존 칩에 꾹 누르기 적용
     document.querySelectorAll('.chip').forEach(chip => addLongPress(chip));
 
@@ -247,6 +320,11 @@
           else addChip('allergies', val, 'dc', true, true);
         });
       }
+      // 이용 불가 시간대 복원
+      if (saved.unavailableTime) {
+        const btn = [...document.querySelectorAll('.time-btn')].find(b => b.dataset.val === saved.unavailableTime);
+        if (btn) btn.classList.add('selected');
+      }
     }
 
     function savePreference() {
@@ -255,7 +333,10 @@
       const dislikedCuisines = [...document.querySelectorAll('#dislikedCuisines .chip.selected')].map(c => c.dataset.val);
       const allergies = [...document.querySelectorAll('#allergies .chip.selected')].map(c => c.dataset.val);
 
-      const data = { likedTypes, likedCuisines, dislikedCuisines, allergies };
+      const selectedTimeBtn = document.querySelector('.time-btn.selected');
+      const unavailableTime = selectedTimeBtn ? selectedTimeBtn.dataset.val : null;
+
+      const data = { likedTypes, likedCuisines, dislikedCuisines, allergies, unavailableTime };
       localStorage.setItem('preference', JSON.stringify(data));
       alert('저장되었습니다.');
       location.href = 'Menu.html';
