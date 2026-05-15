@@ -123,6 +123,7 @@
     }
     .chip-inline.dc { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
     .chip-inline.dislike { background: #fef3c7; border-color: #d97706; color: #d97706; }
+    .chip-inline.unavailable { background: #f3e8ff; border-color: #7c3aed; color: #7c3aed; }
     .pref-setting-btn {
       width: 100%; padding: 12px; border: 1.5px solid #111;
       border-radius: 8px; background: #fff; font-size: 15px; cursor: pointer; margin-top: 8px;
@@ -285,9 +286,9 @@
 
     // 식당별 추천 (기숙사-아침, 교직원-저녁)
     const recommendations = {
-      0: null, // 선호도 페이지는 추천 없음
-      1: dormMeals[0],   // 기숙사 → 아침 추천
-      2: staffMeals[2],  // 교직원 → 저녁 추천
+      0: null,
+      1: dormMeals[0],
+      2: staffMeals[2],
     };
 
     function renderMeals(containerId, meals) {
@@ -340,6 +341,13 @@
         html += `<div style="margin-bottom:10px;"><span style="font-size:13px;color:#555;">싫어하는 메뉴</span><br>${pref.dislikedCuisines.map(v => `<span class="chip-inline dislike">${v}</span>`).join('')}</div>`;
       if (pref.allergies && pref.allergies.length > 0)
         html += `<div style="margin-bottom:10px;"><span style="font-size:13px;color:#555;">알레르기</span><br>${pref.allergies.map(v => `<span class="chip-inline dc">${v}</span>`).join('')}</div>`;
+
+      // 이용 불가 시간대
+      const timeEmoji = { 아침: '🌅', 점심: '☀️', 저녁: '🌙' };
+      if (pref.unavailableTime) {
+        html += `<div style="margin-bottom:10px;"><span style="font-size:13px;color:#555;">이용 불가 시간대</span><br><span class="chip-inline unavailable">${timeEmoji[pref.unavailableTime] || ''} ${pref.unavailableTime}</span></div>`;
+      }
+
       prefBody.innerHTML = html || '<div class="pref-empty">설정된 선호도가 없습니다.</div>';
     }
 
